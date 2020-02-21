@@ -21,7 +21,7 @@ let loader = PIXI.loader,
       TextureCache = PIXI.utils.TextureCache,
       Sprite = PIXI.Sprite,
       Graphics = PIXI.Graphics,
-      Rectangle = PIXI.Rectangle;
+      Rectangle = PIXI.Rectangle
       
 loader.
     add([
@@ -57,50 +57,58 @@ class _Entity {
     // set stats properly
     if(health !== undefined){
       this.stat.health = health;
-      return "health updated: " + health;
     }
     if(armor !== undefined) {
       this.stat.armor = armor;
-      return "armor updated: " + armor;
     }
     if(skills !== undefined) {
       this.stat.skills = skills;
-      return "skills updated: " + skills;
     }
     if(skillsCoolDown !== undefined) {
       this.stat.skillsCoolDown = skillsCoolDown;
-      return "CD updated: " + skillsCoolDown;
     }
     if(sprite !== undefined) {
-      this.property.sprite = sprite;
-      return "sprite updated: " + sprite;
+      this.property.sprite = new Sprite(resources[sprite].texture);
     }
     if(xSpawnPoint !== undefined) {
       this.property.xSpawnPoint = xSpawnPoint;
-      return "xSP updated: " + xSpawnPoint;
     }
     if(ySpawnPoint !== undefined) {
       this.property.ySpawnPoint = ySpawnPoint;
-      return "ySP updated: " + ySpawnPoint;
     }
     if(speed !== undefined) {
       this.physics.speed = speed;
-      return "speed updated: " + speed;
     }
     if(xVelocity !== undefined) {
       this.physics.xVelocity = xVelocity;
-      return "xVel updated: " + xVelocity;
     }
     if(yVelocity !== undefined) {
       this.physics.yVelocity = yVelocity;
-      return "yVel updated: " + yVelocity;
     }
+  }
+  addEntity() {
+    this.SpritePos = this.property.sprite.position;
+    this.SpritePos.x = this.property.xSpawnPoint;
+    this.SpritePos.y = this.property.ySpawnPoint;
+    
+    app.stage.addChild(this.property.sprite);
   }
 }
 
 class _Character extends _Entity {
   constructor() {
-    
+    super();
+    this.data = {
+      name: "",
+      description: "",
+      playstyle: "",
+      playerside: ""
+    }
+    this.interfaceSprites = {
+      profile: "",
+      special: "",
+      special2: ""
+    }
   }
   
   static selectJoe() {
@@ -111,6 +119,6 @@ class _Character extends _Entity {
 function setup() {
   let player1, player2;
   let player = new _Entity();
-  console.log(player.create_update({armor:100}) );
-  console.log(player.physics.speed)
+  player.create_update({sprite: "assets/forTest/blue.png"});
+  player.addEntity()
 }
