@@ -15,3 +15,5 @@ function resizeScreen() {
 window.onload = event => resizeScreen();
 window.onfocus = event => resizeScreen();
 
+let loader = PIXI.loader,
+    Sprite = PIXI.Sprite
