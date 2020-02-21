@@ -16,4 +16,9 @@ window.onload = event => resizeScreen();
 window.onfocus = event => resizeScreen();
 
 let loader = PIXI.loader,
-    Sprite = PIXI.Sprite
+      Container = PIXI.Container,
+      resources = PIXI.loader.resources,
+      TextureCache = PIXI.utils.TextureCache,
+      Sprite = PIXI.Sprite,
+      Graphics = PIXI.Graphics,
+      Rectangle = PIXI.Rectangle;
