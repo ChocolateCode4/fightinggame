@@ -9,8 +9,9 @@ app.renderer.view.style.display = "block";
 app.renderer.autoResize = true;
 app.renderer.antialias = true;
 app.renderer.backgroundColor = 0xe6f9ff;
-window.onfocus = event => {
+function resizeScreen() {
   app.renderer.resize(window.innerWidth, window.innerHeight);
 }
+window.onload = event => resizeScreen();
+window.onfocus = event => resizeScreen();
 
-console.log("Hello")
