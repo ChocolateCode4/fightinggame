@@ -1,6 +1,6 @@
 let app = new PIXI.Application({
-  width: 0,
-  height: 0
+  width: 1024,
+  height: 768
 });
 
 document.body.appendChild(app.view);
@@ -9,12 +9,6 @@ app.renderer.view.style.display = "block";
 app.renderer.autoResize = true;
 app.renderer.antialias = true;
 app.renderer.backgroundColor = 0xe6f9ff;
-function resizeScreen() {
-  app.renderer.resize(window.innerWidth /0.5, window.innerHeight /2);
-}
-window.onload = event => resizeScreen();
-window.onfocus = event => resizeScreen();
-
 let loader = PIXI.loader,
       Container = PIXI.Container,
       resources = PIXI.loader.resources,
