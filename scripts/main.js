@@ -1,7 +1,7 @@
 let app = new PIXI.Application({
   width: 0,
   height: 0
-})
+});
 
 document.body.appendChild(app.view);
 app.renderer.view.style.position = "absolute";
@@ -10,7 +10,7 @@ app.renderer.autoResize = true;
 app.renderer.antialias = true;
 app.renderer.backgroundColor = 0xe6f9ff;
 function resizeScreen() {
-  app.renderer.resize(window.innerWidth, window.innerHeight);
+  app.renderer.resize(window.innerWidth /0.5, window.innerHeight /2);
 }
 window.onload = event => resizeScreen();
 window.onfocus = event => resizeScreen();
@@ -21,17 +21,63 @@ let loader = PIXI.loader,
       TextureCache = PIXI.utils.TextureCache,
       Sprite = PIXI.Sprite,
       Graphics = PIXI.Graphics,
-      Rectangle = PIXI.Rectangle
+      Rectangle = PIXI.Rectangle;
       
 loader.
     add([
       "assets/players/idleJoe.png",
       "assets/forTest/blue.png"
-      ]).load(setup)
+      ]).load(setup);
       
+//pre-setup variables
+let mainContainers, physicsManager, PhaseManager, mainCharacters, entityManager;
+      
+class _Containers extends PIXI.Container {
+  constructor() {
+    super();
+    this.entities = new Container();
+    this.rigidBodies = new Container();
+  }
+  render(container) {
+    if(container == "all") {
+     app.stage.addChild(this.entities);
+     app.stage.addChild(this.rigidBodies);
+   }
+  }
+}
+      
+class _Physics {
+  constructor() {
+    this.gravity = 5;
+    this.inertia = 0;
+  }
+  
+  gravityOn(entity) {
+    this.gravityTicker = app.ticker.add(delta => {
+      mainContainers.entities.y += this.gravity;
+    });
+  }
+  applyRigidBody(body) {
+    this.body = body;
+    mainContainers.rigidBodies.addChild(this.body);
+  }
+  rigidBodyCollision(obj1,obj2, stopMovement) {
+    /*this.obj1 = obj1;
+    this.obj2 = obj2;
+    if(hitTestRectangle(this.obj1,this.obj2) ) {
+      this.obj1.gravityTicker.stop();
+      this.obj2.gravityTicker.stop();
+    }
+    --- TODO: create a custom collision system using posX + width PosY + height, or maybe hitbox type ---
+    
+    */
+  }
+}
+     
 class _Entity {
   constructor() {
     this.stat = {
+      state: "idle",
       health: 100,
       armor: 50,
       skills: [],
@@ -69,6 +115,7 @@ class _Entity {
     }
     if(sprite !== undefined) {
       this.property.sprite = new Sprite(resources[sprite].texture);
+      mainContainers.entities.addChild(this.property.sprite);
     }
     if(xSpawnPoint !== undefined) {
       this.property.xSpawnPoint = xSpawnPoint;
@@ -91,7 +138,8 @@ class _Entity {
     this.SpritePos.x = this.property.xSpawnPoint;
     this.SpritePos.y = this.property.ySpawnPoint;
     
-    app.stage.addChild(this.property.sprite);
+    // add sprite to container
+   // app.stage.addChild(this.property.sprite);
   }
 }
 
@@ -115,10 +163,23 @@ class _Character extends _Entity {
    
   }
 }
+
+let floor = new Graphics();
+floor.beginFill(0xFF3300);
+floor.drawRect(0, 220, 400, 5);
+floor.endFill();
+
       
 function setup() {
+  mainContainers = new _Containers();
+  physicsManager = new _Physics();
+  mainCharacters = new _Character();
+  mainContainers.render("all");
+  physicsManager.gravityOn();
+  physicsManager.applyRigidBody(floor);
   let player1, player2;
   let player = new _Entity();
+  physicsManager.rigidBodyCollision(player, floor)
   player.create_update({sprite: "assets/forTest/blue.png"});
-  player.addEntity()
+  player.addEntity();
 }
