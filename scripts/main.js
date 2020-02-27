@@ -30,47 +30,45 @@ class _Containers extends PIXI.Container {
   constructor() {
     super();
     this.entities = new Container();
-    this.rigidBodies = new Container();
-  }
-  render(container) {
-    if(container == "all") {
-     app.stage.addChild(this.entities);
-     app.stage.addChild(this.rigidBodies);
-   }
+    this.floorObjects = new Container();
   }
 }
+
+
       
 class _Physics {
   constructor() {
     this.gravity = 5;
     this.inertia = 0;
+    this.gravityTicker;
   }
   
   gravityOn(entity) {
     this.gravityTicker = app.ticker.add(delta => {
-      mainContainers.entities.y += this.gravity;
+      entity.property.sprite.position.y += this.gravity;
     });
   }
-  applyRigidBody(body) {
-    this.body = body;
-    mainContainers.rigidBodies.addChild(this.body);
-  }
-  rigidBodyCollision(obj1,obj2, stopMovement) {
-    /*this.obj1 = obj1;
-    this.obj2 = obj2;
-    if(hitTestRectangle(this.obj1,this.obj2) ) {
-      this.obj1.gravityTicker.stop();
-      this.obj2.gravityTicker.stop();
-    }
-    --- TODO: create a custom collision system using posX + width PosY + height, or maybe hitbox type ---
-    
-    */
+  
+  floorCollide(floor, player) {
+    this.floor = floor;
+    this.player = player;
+    this.playerObj = this.player.property.sprite;
+    this.playerPos = this.player.property.sprite.position;
+   
+    app.ticker.add(delta => {
+      this.playerFoot = this.playerPos.y + (this.playerObj.height/2)
+      if(this.playerFoot <= (this.floor.y - floor.height) && this.playerFoot > this.floor.y - 10) {
+        console.log("collission detected at " + this.playerPos.y);
+        this.gravityTicker.stop()
+      }
+    });
   }
 }
      
 class _Entity {
   constructor() {
     this.stat = {
+      side: "p1",
       state: "idle",
       health: 100,
       armor: 50,
@@ -122,7 +120,7 @@ class _Entity {
     }
     if(xVelocity !== undefined) {
       this.physics.xVelocity = xVelocity;
-    }
+    } 
     if(yVelocity !== undefined) {
       this.physics.yVelocity = yVelocity;
     }
@@ -153,27 +151,34 @@ class _Character extends _Entity {
     }
   }
   
-  static selectJoe() {
+  static selectJoe(side) {
    
   }
 }
 
-let floor = new Graphics();
-floor.beginFill(0xFF3300);
-floor.drawRect(0, 220, 400, 5);
-floor.endFill();
+let floorBounds = new Graphics();
+floorBounds.beginFill(0xFF3300);
+floorBounds.drawRect(0, 0, 400, 5);
+floorBounds.y = 400;
+floorBounds.endFill();
 
-      
 function setup() {
   mainContainers = new _Containers();
   physicsManager = new _Physics();
   mainCharacters = new _Character();
-  mainContainers.render("all");
-  physicsManager.gravityOn();
-  physicsManager.applyRigidBody(floor);
+  render("all");
   let player1, player2;
-  let player = new _Entity();
-  physicsManager.rigidBodyCollision(player, floor)
-  player.create_update({sprite: "assets/forTest/blue.png"});
-  player.addEntity();
+  player1 = new _Entity();
+  player1.create_update({sprite: "assets/forTest/blue.png"});
+  player1.addEntity();
+  physicsManager.gravityOn(player1);
+  physicsManager.floorCollide(floorBounds, player1);
+}
+
+function render(container) {
+  if (container == "all") {
+
+    app.stage.addChild(mainContainers.entities);
+    app.stage.addChild(floorBounds);
+  }
 }
