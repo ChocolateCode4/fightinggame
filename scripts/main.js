@@ -1,5 +1,5 @@
 /* TODO: 
-(1) MAIN: set a limiter for jump height, idea: disallow pointer from moving probably have to make pointer storage global
+(1) MAIN: set a limiter for jump height, idea: disallow pointer from moving probably have to make pointer storage global or use if state then not allow "up"
 (2) create a new opponent/npc
 (3) make test sprites for 6f attackS
 (4) simulate damage
@@ -34,7 +34,7 @@ loader.
       ]).load(setup);
       
 //pre-setup variables
-let mainContainers, physicsManager, PhaseManager, mainCharacters, entityManager;
+let mainContainers, physicsManager, PhaseManager, mainCharacters, entityManager, groundPos;
       
 class _Containers extends PIXI.Container {
   constructor() {
@@ -113,6 +113,7 @@ class _Entity {
    this.mTicker.add(delta => {
    this.spritePos = this.property.sprite.position;
    this.spritePos.x += this.physics.xVelocity;
+   console.log("please ignore this error!");
    this.spritePos.y += this.physics.yVelocity;
    });
    this.mTicker.start();
@@ -121,6 +122,7 @@ class _Entity {
     if(bool === true) {
       //jump config
       this.jumpHeight = this.property.sprite.position.y + this.physics.jumpLimit;
+      //console.log(this.jumpHeight)
       this.currentHeight = this.property.sprite.position.y + 0;
       // x config
       this.speed = this.physics.speed;
@@ -133,11 +135,11 @@ class _Entity {
           this.physics.xVelocity = this.speed;
         }
         if(direction == "u") {
-         if(this.currentHeight != this.jumpHeight) {
-           this.currentHeight++;
+         if(this.stat.state == "jumping") {
            this.physics.yVelocity = -15;
-         } else {
-           this.currentHeight = 
+         }
+         else {
+           this.currentHeight = 0;
            this.physics.yVelocity = 0;
          }
          
@@ -149,6 +151,9 @@ class _Entity {
        }
       });
        this.tick.start();
+     } else if(bool === false) {
+       
+       this.physics.yVelocity = 0;
      }
    }
    
@@ -223,6 +228,7 @@ floorBounds.y = 400;
 floorBounds.endFill();
 
 function controlEntity(entity) {
+  let posTick = new Ticker();
   ctrlScreen = new Graphics();
   ctrlScreen.beginFill(0xFF3300);
   ctrlScreen.drawRect(0,0,150,800);
@@ -233,11 +239,13 @@ function controlEntity(entity) {
     y: 0,
     x: 0
   };
+  
   ctrlScreen.touchstart = event => {
     let pointer = event.data.global;
     storage.y = pointer.y;
     storage.x = pointer.x;
   };
+  
   ctrlScreen.touchmove = event => {
     let pointer = event.data.global;
     if(pointer.x > storage.x + 30 && pointer.x < ctrlScreen.width) {
@@ -246,12 +254,30 @@ function controlEntity(entity) {
     if(pointer.x < storage.x - 30 && pointer.x < ctrlScreen.width) {
       entity.doMove(true, "l");
     }
-    if(pointer.y < storage.y - 50) {
-      entity.doMove(true, "u");
-      storage.y = 0;
+    if(pointer.y < storage.y -50) {
+      posTick.add(delta => {
+        if(entity.property.sprite.position.y <= 200) {
+          entity.stat.state = "idle";
+          entity.doMove(false);
+        } else if(entity.property.sprite.position.y == 375){
+          entity.stat.state = "jumping";
+          entity.doMove(true, "u");
+          if(entity.property.sprite.position.y == 200) {
+            entity.stat.state = "idle";
+          }
+        }
+      });
+      posTick.update();
     }
   };
+  ctrlScreen.touchstart = event => {
+    let pointer = event.data.global;
+    storage.y = pointer.y;
+    storage.x = pointer.x;
+  };
   ctrlScreen.touchend = event => {
+    storage.x = 0;
+    storage.y = 0;
     entity.doMove(true, "n");
   };
   ctrlScreen.touchendoutside = event => {
