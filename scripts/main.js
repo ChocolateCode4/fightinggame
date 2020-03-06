@@ -1,3 +1,12 @@
+/* To Do:
+1) touch movement/control but this time use animated/events especially for jump, don't rely on touch position. (entity based for future multiclients)
+2) combat mechanics (damage, basic attacks)
+3) create atlas sprites, use our JSON expertise.
+4) create camera movement to follow selected player
+5) create a prototype AI
+
+*/
+
 // ALIAS //
 const Application = PIXI.Application,
       Loader = PIXI.loader,
@@ -6,6 +15,7 @@ const Application = PIXI.Application,
       Ticker = PIXI.Ticker,
       Graphics = PIXI.Graphics,
       Sprite = PIXI.Sprite,
+      rigidBodies = [],
       app = new Application({
         width: window.innerWidth,
         height: window.innerHeight,
@@ -17,12 +27,13 @@ Loader.add([
   "assets/forTest/blue.png"
   
   ]).load(window.onload = () => orientation());
-  
+
 class Player {
   constructor(sprite, health, selected, side) {
     this.sprite = new Sprite(Resources[sprite].texture);
     this.selected = selected;
     this.side = side;
+    this.state;
     this.health = health;
     console.log(this.selected + " is created with " + this.health + "HP");
    
@@ -44,37 +55,15 @@ class Player {
     app.stage.addChild(this.sprite);
     this.sprite.position.x = this.spawn.x;
     this.sprite.position.y = this.spawn.y;
+    rigidBodies.push(this.sprite);
   }
 }
 
 // global
-const gravArray = [],
-      rigidBody = new Container();
-      
 let player1,
-    player2;
-
-let gravity = new Ticker(),
-    gravProperties = {
-      force: 4,
-      state: ""
-    };
-    
-gravity.add(delta => {
-  gravArray.forEach((bodies) => {
-    let bodyPos = bodies.sprite.position;
-    if(bodyPos.y - invisGround.y >= 288) {
-      bodyPos.y += 0;
-    } else {
-      bodyPos.y += 4
-    }
-    
-  });
-});
-
-gravity.start();
-
-let invisGround = new Graphics();
+    player2,
+    gravityConfig,
+    invisGround = new Graphics();
 invisGround.beginFill(0x66CCFF);
 invisGround.drawRect(0,320, 600, 1);
 invisGround.endFill();
@@ -88,24 +77,35 @@ function init() {
   
  // adds bounds for floor
  app.stage.addChild(invisGround);
- 
-  // Gravity Definitions
-  enableGravity([player1, player2]);
-  gravArray.forEach((bodies) => {
-    rigidBody.addChild(bodies);
-  });
-  
-  // render
-  app.renderer.render(app.stage);
+ // gravity
+ gravity("on");
+ // render
+ app.renderer.render(app.stage);
 }
 
-function enableGravity(object) {
-  object.forEach(objects => {
-    gravArray.push(objects);
+function gravity(state) {
+  gravityConfig = {
+    velocity: 4
+  };
+  let ticker = new Ticker();
+  ticker.add(delta => {
+    rigidBodies.forEach((body) => {
+      if(body.position.y - invisGround.y >= 288) {
+        ticker.stop();
+        body.position.y = 288;
+        return "Gravity Stop";
+      } else {
+        body.position.y += gravityConfig.velocity;
+        return "Gravity Running";
+      }
+    });
   });
+  if(state == "on") {
+    ticker.start();
+  } else if(state == "off") {
+    ticker.stop();
+  }
 }
-
-
 
 
 function orientation() {
