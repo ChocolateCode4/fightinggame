@@ -37,6 +37,7 @@ class Player {
     this.side = side;
     this.state = "idle";
     this.health = health;
+    this.jumping = false;
     this.spawn = {
        x: 0,
        y: 0
@@ -47,8 +48,8 @@ class Player {
       cur: 0
     };
     
-    this.jumpDistance = 5;
-    
+    this.jumpDistance = 100;
+    this.jumpVelocity = 9;
     this.addPlayer();
   }
   addPlayer() {
@@ -79,6 +80,53 @@ class Movement {
       }
     }
   }
+  static jump(direction, player) {
+    if(player.state == "idle") {
+      player.state = "jumping";
+      this.playerPos = player.sprite.position;
+      this.jumpDistance = {
+        l: player.sprite.position.x - player.jumpDistance,
+        r: player.sprite.position.x + player.jumpDistance
+      };
+      
+      //ticker
+      this.jumpTicker = new Ticker();
+      this.destroyTicker = false;
+      if(direction == "upright") {
+        this.jumpTicker.add(delta => {
+          if (this.playerPos.x < this.jumpDistance.r) {
+            this.playerPos.y -= 15;
+            this.playerPos.x += player.jumpVelocity;
+          }
+        });
+      }
+      if(direction == "upleft") {
+        this.jumpTicker.add(delta => {
+          if (this.playerPos.x > this.jumpDistance.l) {
+            this.playerPos.y -= 15;
+            this.playerPos.x -= player.jumpVelocity;
+          }
+        });
+      }
+      if(direction == "up") {
+        console.log("up")
+      }
+      this.jumpTicker.add(delta => {
+        if (this.playerPos.y - invisGround.y >= 289) {
+          player.state = "idle";
+          Movement.walk("neutral", player)
+          this.destroyTicker = true;
+        }
+        if(this.destroyTicker === true) {
+          this.jumpTicker.destroy();
+        }
+      })
+      this.jumpTicker.start();
+    }
+  }
+  static crouch(direction, player) {
+    
+  }
 }
 
 // global
@@ -100,7 +148,7 @@ invisGround.endFill();
 
 touchField.beginFill(0xffffff);
 touchField.alpha = 0;
-touchField.drawRect(0,0,window.innerWidth/2,window.innerHeight);
+touchField.drawRect(0,0,window.innerWidth,window.innerHeight);
 touchField.endFill();
 touchField.interactive = true;
 
@@ -124,6 +172,32 @@ function init() {
 
 function touchControl(entity) {
   app.stage.addChild(touchField);
+  function doMove(event,diff) {
+    let touch = event.data.global;
+    difference = touch.x - touchStorage.x;
+    differenceUp = touch.y - touchStorage.y;
+        // config for jump detecting
+    if (differenceUp <= -30 && difference >= diff + 40) {
+      //jump forward
+      Movement.jump("upright", entity);
+    } else if (differenceUp >= 50 && difference <= diff - 40) {
+          //crouch guard
+          Movement.crouch("downleft", entity);
+    } else if (differenceUp <= -30 && difference <= diff) {
+          //jump left
+      Movement.jump("upleft", entity);
+    }
+    // config for left-right movement
+    if (difference >= diff) {
+      //right
+      Movement.walk("right", entity);
+      
+    } else if (difference <= -diff) {
+      //left
+      Movement.walk("left", entity);
+    }
+
+  }
   touchStorage = {
     x: 0,
     y: 0
@@ -133,34 +207,23 @@ function touchControl(entity) {
     touchStorage.x = touch.x;
     touchStorage.y = touch.y;
   };
-  touchField.touchmove = event => {
-    let touch = event.data.global;
-    difference = touch.x - touchStorage.x;
-    differenceUp = touch.y - touchStorage.y;
-    // config for left-right movement
-    if(difference >= 40) {
-      //right
-      Movement.walk("right", entity);
-    } else if(difference <= -40) {
-      //left
-      Movement.walk("left", entity);
-    }
-    // config for jump detecting
-    if(differenceUp <= -50) {
-      //jump
-    } else if(differenceUp >= 50) {
-      //crouch
-    }
-    
+  touchField.touchmove = event => doMove(event, 10);
+  touchField.touchcancel = event => { 
+    touchStorage.x = event.data.global.x;
+    doMove(event, 5);
   };
   touchField.touchend = (event => Movement.walk("neutral", entity));
-}
+} 
 
 function gameLoop(delta) {
   //movement on x axis
   playerGroup.forEach((player) => {
     player.sprite.position.x += player.speed.cur;
   });
+}
+
+function retFloorHit(data) {
+  
 }
 
 function gravity(state) {
@@ -185,7 +248,6 @@ function gravity(state) {
     ticker.stop();
   }
 }
-
 
 function orientation() {
   const orientation = window.screen.orientation.type;
