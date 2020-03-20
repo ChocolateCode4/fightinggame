@@ -1,7 +1,7 @@
 /* To Do:
-(current = make jump for jump distance)
-1) touch movement/control but this time use animated/events especially for jump, don't rely on touch position. (entity based for future multiclients)
-2) combat mechanics (damage, basic attacks)
+MAIN: FIX out of bounds also make the oob hit to run/complete jump ticker rather than stop it, form like a for loop
+2) MAIN: sprtites/json data files 
+then combat mechanics (damage, basic attacks)
 3) create atlas sprites, use our JSON expertise.
 4) create camera movement to follow selected player
 5) create a prototype AI
@@ -48,8 +48,10 @@ class Player {
       cur: 0
     };
     
-    this.jumpDistance = 100;
-    this.jumpVelocity = 9;
+    this.moveContainer = [];
+    
+    this.jumpDistance = 130;
+    this.jumpVelocity = 7;
     this.addPlayer();
   }
   addPlayer() {
@@ -95,16 +97,20 @@ class Movement {
       if(direction == "upright") {
         this.jumpTicker.add(delta => {
           if (this.playerPos.x < this.jumpDistance.r) {
-            this.playerPos.y -= 15;
-            this.playerPos.x += player.jumpVelocity;
+            if(player.state != "oob") {
+               this.playerPos.y -= 15;
+               this.playerPos.x += player.jumpVelocity;
+            }
           }
         });
       }
       if(direction == "upleft") {
         this.jumpTicker.add(delta => {
           if (this.playerPos.x > this.jumpDistance.l) {
-            this.playerPos.y -= 15;
-            this.playerPos.x -= player.jumpVelocity;
+            if(player.state != "oob") {
+               this.playerPos.y -= 15;
+               this.playerPos.x -= player.jumpVelocity;
+            }
           }
         });
       }
@@ -170,30 +176,60 @@ function init() {
  app.renderer.render(app.stage);
 }
 
+function showConsole(text) {
+  let domConsole = document.getElementById("console");
+  domConsole.innerText = text;
+}
+
+function moveToContainer(move, entity) {
+  function reset() {
+    entity.moveContainer = [];
+  }
+  if(entity.moveContainer.length > 4) {
+    reset();
+  }
+  function filterDupl(moves) {
+    for(x=0;x<moves.length;x++) {
+      if(moves[x] === moves[x+1]) {
+        moves.pop();
+      }
+    }
+  }
+  entity.moveContainer.push(move);
+  filterDupl(entity.moveContainer)
+}
+
 function touchControl(entity) {
   app.stage.addChild(touchField);
   function doMove(event,diff) {
     let touch = event.data.global;
     difference = touch.x - touchStorage.x;
     differenceUp = touch.y - touchStorage.y;
-        // config for jump detecting
-    if (differenceUp <= -30 && difference >= diff + 40) {
+        // config for  detecting
+    if (differenceUp <= -30 && difference >= diff + 20) {
       //jump forward
+      moveToContainer("ur", entity);
       Movement.jump("upright", entity);
-    } else if (differenceUp >= 50 && difference <= diff - 40) {
+    } else if (differenceUp >= 50 && difference <= diff) {
           //crouch guard
+          moveToContainer("dl", entity);
           Movement.crouch("downleft", entity);
-    } else if (differenceUp <= -30 && difference <= diff) {
+    } else if (differenceUp <= -30 && difference <= diff - 20) {
           //jump left
+      moveToContainer("ul", entity);
       Movement.jump("upleft", entity);
+    }
+    if(differenceUp >= 50 && difference ) {
+      moveToContainer("d", entity);
     }
     // config for left-right movement
     if (difference >= diff) {
       //right
+      moveToContainer("r",entity);
       Movement.walk("right", entity);
-      
     } else if (difference <= -diff) {
       //left
+      moveToContainer("l", entity);
       Movement.walk("left", entity);
     }
 
@@ -219,6 +255,16 @@ function gameLoop(delta) {
   //movement on x axis
   playerGroup.forEach((player) => {
     player.sprite.position.x += player.speed.cur;
+    if(player.sprite.position.x < app.screen.x - 5) {
+      player.sprite.position.x = app.screen.x - 5;
+      player.state = "oob";
+    } 
+    if(player.sprite.position.x >= app.screen.width - 10) {
+      player.sprite.position.x = app.screen.width - 10;
+      player.state = "oob";
+    }
+  
+    
   });
 }
 
@@ -255,7 +301,7 @@ function orientation() {
   if(orientation === "landscape-primary" || "landscape-secondary") {
     init();
   } else {
-    window.alert("PORTRAIT MODE ISN'T SUPPORTED");
+    window.prompt("PORTRAIT MODE ISN'T SUPPORTED");
     location.reload();
   }
 }
