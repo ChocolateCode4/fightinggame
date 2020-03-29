@@ -1,5 +1,5 @@
 /* To Do:
-MAIN: FIX out of bounds also make the oob hit to run/complete jump ticker rather than stop it, form like a for loop
+MAIN: fucking jump up needs to be done using limiter for playerpos.y and then apply it also to all objects
 2) MAIN: sprtites/json data files 
 then combat mechanics (damage, basic attacks)
 3) create atlas sprites, use our JSON expertise.
@@ -17,7 +17,6 @@ const Application = PIXI.Application,
       Graphics = PIXI.Graphics,
       Sprite = PIXI.Sprite,
       Text = PIXI.Text,
-      rigidBodies = [],
       app = new Application({
         width: window.innerWidth,
         height: window.innerHeight,
@@ -29,15 +28,99 @@ Loader.add([
   "assets/forTest/blue.png"
   
   ]).load(window.onload = () => orientation());
+  
+class Ground {
+  constructor(x,y,w,h,col) {
+    this.object = new Graphics();
+    this.posPointer = this.object.position;
+    this.object.beginFill(col);
+    this.object.drawRect(0,0,w,h);
+    this.object.endFill();
+    this.object.y = y;
+    this.object.x = x;
+    this.propertyPointer = this.object;
+    app.stage.addChild(this.object);
+  }
+}
+
+class GameRules {
+  static rbgroundcol(entity, ground) {
+   if(entity.posPointer.y == ground.posPointer.y - entity.propertyPointer.height) {
+     return true;
+   }
+   return false;
+  }
+  static groundObjects = [];
+  static rigidBodies = [];
+  static gravValue = 2;
+  static playerMove() {
+    playerGroup.forEach(player => {
+      
+     if(player.state == "onJumpRight"){
+        player.jump.distVel = player.jump.defDistVel;
+     } else if(player.state == "onJumpLeft") {
+       player.jump.distVel = -player.jump.defDistVel;
+     }
+      
+     let yDistance = player.standingPoint - (player.propertyPointer.height - player.jump.yDistance);
+      if(player.posPointer.y > yDistance) {
+        player.posPointer.y += player.jump.vel;
+      } else {
+        player.jump.vel = 0;
+      }
+      player.posPointer.x += player.jump.distVel;
+      player.posPointer.x += player.speed.cur;
+      if (player.posPointer.x < app.screen.x - 5) {
+        player.posPointer.x = app.screen.x - 5;
+        player.outofbounds = "oobL";
+      }
+      if (player.posPointer.x >= app.screen.width - 10) {
+        player.posPointer.x = app.screen.width - 10;
+        player.outofbounds = "oobR";
+      }
+    })
+  }
+  static gravity(state) {
+    GameRules.rigidBodies.forEach(rb => {
+      GameRules.groundObjects.forEach(go => {
+        if(rb.posPointer.y + rb.propertyPointer.height <= go.posPointer.y) {
+        rb.posPointer.y += GameRules.gravValue;
+        rb.standingPoint = go.posPointer.y;
+       } else {
+         rb.posPointer.y = go.posPointer.y - rb.propertyPointer.height;
+         if(rb.state == "onJumpLeft" || rb.state == "onJumpRight" || rb.state == "onJump") {
+           rb.state = "idle";
+           rb.canJump = true;
+           rb.canWalk = true;
+           rb.jump.distVel = 0;
+         }
+       }
+      });
+    });
+    if(state == "off") {
+      GameRules.gravValue = 0;
+    } else if(state == "on") {
+      GameRules.gravValue = 2;
+    } else {
+      throw console.error("Game Error: " + state + " isn't a gravity state!");
+    }
+  }
+}
 
 class Player {
   constructor(sprite, health, selected, side) {
     this.sprite = new Sprite(Resources[sprite].texture);
     this.selected = selected;
     this.side = side;
+    this.standingPoint = 0;
     this.state = "idle";
+    this.outofbounds;
+    this.canJump = true;
+    this.canWalk = true;
+    this.canAttack = true;
     this.health = health;
-    this.jumping = false;
+    this.propertyPointer = this.sprite;
+    this.posPointer = this.sprite.position;
     this.spawn = {
        x: 0,
        y: 0
@@ -50,8 +133,14 @@ class Player {
     
     this.moveContainer = [];
     
-    this.jumpDistance = 130;
-    this.jumpVelocity = 7;
+    this.jump = {
+      yDistance: -120,
+      xDistance: 120,
+      defVel: 7,
+      defDistVel: 2.5,
+      vel: 0,
+      distVel: 0
+    }
     this.addPlayer();
   }
   addPlayer() {
@@ -65,73 +154,55 @@ class Player {
     app.stage.addChild(this.sprite);
     this.sprite.position.x = this.spawn.x;
     this.sprite.position.y = this.spawn.y;
-    rigidBodies.push(this.sprite);
   }
 }
 
 class Movement {
-  static walk(direction, player) {
-    if(player.state == "idle") {
-      if(direction == "right") {
-        player.speed.cur = player.speed.def;
-      } else if(direction == "left") {
-        player.speed.cur = -player.speed.def;
+  static walk(dir,ent) {
+    if(ent.canWalk == true) {
+      switch(dir) {
+        case "right":
+          ent.speed.cur = ent.speed.def;
+          break;
+        case "left":
+          ent.speed.cur = -ent.speed.def;
+          break;
+        case "neutral":
+          ent.speed.cur = 0;
+          break;
+        default:
+          throw console.error(dir + " IS NOT A DIRECTION!");
       }
-      if(direction == "neutral") {
-        player.speed.cur = 0;
-      }
+    } else {
+      ent.speed.cur = 0;
     }
   }
-  static jump(direction, player) {
-    if(player.state == "idle") {
-      player.state = "jumping";
-      this.playerPos = player.sprite.position;
-      this.jumpDistance = {
-        l: player.sprite.position.x - player.jumpDistance,
-        r: player.sprite.position.x + player.jumpDistance
-      };
-      
-      //ticker
-      this.jumpTicker = new Ticker();
-      this.destroyTicker = false;
-      if(direction == "upright") {
-        this.jumpTicker.add(delta => {
-          if (this.playerPos.x < this.jumpDistance.r) {
-            if(player.state != "oob") {
-               this.playerPos.y -= 15;
-               this.playerPos.x += player.jumpVelocity;
-            }
-          }
-        });
+  static jump(dir,ent) {
+    if(ent.canJump == true) {
+      let potenX;
+      switch(dir) {
+        case "upright":
+          ent.jump.vel = -ent.jump.defVel;
+          ent.canJump = false;
+          ent.canWalk = false;
+          ent.state = "onJumpRight";
+          break;
+        case "upleft":
+          ent.jump.vel = -ent.jump.defVel;
+          ent.canJump = false;
+          ent.canWalk = false;
+          ent.state = "onJumpLeft";
+          break;
+        case "up":
+          ent.jump.vel = -ent.jump.defVel;
+          ent.canWalk = false;
+          ent.canJump = false;
+          ent.state = "onJump";
+          break;
+        default:
+          throw console.error(ent + " CAN'T JUMP TO " + dir);
       }
-      if(direction == "upleft") {
-        this.jumpTicker.add(delta => {
-          if (this.playerPos.x > this.jumpDistance.l) {
-            if(player.state != "oob") {
-               this.playerPos.y -= 15;
-               this.playerPos.x -= player.jumpVelocity;
-            }
-          }
-        });
-      }
-      if(direction == "up") {
-        console.log("up")
-      }
-      this.jumpTicker.add(delta => {
-        if (this.playerPos.y - invisGround.y >= 289) {
-          player.state = "idle";
-          Movement.walk("neutral", player)
-          this.destroyTicker = true;
-        }
-        if(this.destroyTicker === true) {
-          this.jumpTicker.destroy();
-        }
-      })
-      this.jumpTicker.start();
     }
-  }
-  static crouch(direction, player) {
-    
   }
 }
 
@@ -139,18 +210,12 @@ class Movement {
 let player1,
     player2,
     playerGroup = [],
-    gravityConfig,
     moveStorage = [],
-    invisGround = new Graphics(),
     touchField = new Graphics();
     
 newConsole = new Text("Console: ", {color: 0xffffff});
 newConsole.x = 10;
 newConsole.y = 50;
-
-invisGround.beginFill(0x66CCFF);
-invisGround.drawRect(0,320, 600, 1);
-invisGround.endFill();
 
 touchField.beginFill(0xffffff);
 touchField.alpha = 0;
@@ -164,11 +229,12 @@ function init() {
   //define players instance
   player1 = new Player("assets/forTest/blue.png", 100, "blue", "p1");
   player2 = new Player("assets/forTest/blue.png", 100, "blue2", "p2");
-  playerGroup.push(player1,player2);
- // adds bounds for floor
- app.stage.addChild(invisGround);
- // gravity
- gravity("on");
+  playerGroup.push(player1, player2);
+  GameRules.rigidBodies.push(player1,player2);
+
+  // bounds attempt next time use JSON for all of this bullcrap
+  let ground = new Ground(0,450,600,10,"0xffffff");
+  GameRules.groundObjects.push(ground);
  // control
  touchControl(player1);
  // render
@@ -177,7 +243,7 @@ function init() {
 }
 
 function showConsole(text) {
-  let domConsole = document.getElementById("console");
+  let domConsole = document.querySelector("#console");
   domConsole.innerText = text;
 }
 
@@ -205,12 +271,11 @@ function touchControl(entity) {
     let touch = event.data.global;
     difference = touch.x - touchStorage.x;
     differenceUp = touch.y - touchStorage.y;
-        // config for  detecting
-    if (differenceUp <= -30 && difference >= diff + 20) {
+    if (differenceUp <= -30 && difference >= diff + 30) {
       //jump forward
       moveToContainer("ur", entity);
       Movement.jump("upright", entity);
-    } else if (differenceUp >= 50 && difference <= diff) {
+    } else if (differenceUp >= 78 && difference <= diff) {
           //crouch guard
           moveToContainer("dl", entity);
           Movement.crouch("downleft", entity);
@@ -218,6 +283,9 @@ function touchControl(entity) {
           //jump left
       moveToContainer("ul", entity);
       Movement.jump("upleft", entity);
+    }
+    if(differenceUp <= -50 && difference <= 2) {
+      Movement.jump("up", entity)
     }
     if(differenceUp >= 50 && difference ) {
       moveToContainer("d", entity);
@@ -252,47 +320,9 @@ function touchControl(entity) {
 } 
 
 function gameLoop(delta) {
-  //movement on x axis
-  playerGroup.forEach((player) => {
-    player.sprite.position.x += player.speed.cur;
-    if(player.sprite.position.x < app.screen.x - 5) {
-      player.sprite.position.x = app.screen.x - 5;
-      player.state = "oob";
-    } 
-    if(player.sprite.position.x >= app.screen.width - 10) {
-      player.sprite.position.x = app.screen.width - 10;
-      player.state = "oob";
-    }
+  GameRules.gravity("on");
+  GameRules.playerMove();
   
-    
-  });
-}
-
-function retFloorHit(data) {
-  
-}
-
-function gravity(state) {
-  gravityConfig = {
-    velocity: 4
-  };
-  let ticker = new Ticker();
-  ticker.add(delta => {
-    rigidBodies.forEach((body) => {
-      if(body.position.y - invisGround.y >= 289) {
-        body.position.y = 289;
-        return "Gravity Stop";
-      } else {
-        body.position.y += gravityConfig.velocity;
-        return "Gravity Running";
-      }
-    });
-  });
-  if(state == "on") {
-    ticker.start();
-  } else if(state == "off") {
-    ticker.stop();
-  }
 }
 
 function orientation() {

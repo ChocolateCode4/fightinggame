@@ -1,5 +1,39 @@
 {
-  
-  
-  
+  "Animations": {
+    
+  },
+  "moves": {
+    "fireball": {
+      "input": [],
+      "stats": {
+        "dmg": 0,
+        "meter": 0
+      }
+    },
+    "uppercut": {
+      "input": [],
+       "stats": {
+       "dmg": 0,
+       "meter": 0
+      }
+   }
+  },
+  "normals": {
+    "lp": {
+      "dmg": 0,
+      "meter": 0
+    },
+    "sp": {
+      "dmg": 0,
+      "meter": 0
+    },
+    "lk": {
+      "dmg": 0,
+      "meter": 0
+    },
+    "sk": {
+      "dmg": 0,
+      "meter": 0
+    }
+  }
 }
