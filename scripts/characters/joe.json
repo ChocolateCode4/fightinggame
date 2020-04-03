@@ -2,38 +2,85 @@
   "Animations": {
     
   },
-  "moves": {
-    "fireball": {
-      "input": [],
+  "moves": [
+    {
+      "name": "fireball",
+      "inputR": ["d","r","lp"],
+      "inputL": ["d","l", "lp"],
+      "ghostInputR": ["dr"],
+      "ghostInputL": ["dl"],
       "stats": {
         "dmg": 0,
-        "meter": 0
-      }
-    },
-    "uppercut": {
-      "input": [],
+        "meter": 0,
+        "property": "projectile",
+        "priority": 0
+       }
+      },
+     {
+      "name": "uppercut",
+      "inputR": ["r","d","dr","p"],
+      "inputL": ["l","d","dl","p"],
        "stats": {
        "dmg": 0,
-       "meter": 0
-      }
+       "meter": 0,
+       "property": "mid",
+       "priority": 2
+       }
+   },
+   {
+     "name": "burningFist",
+     "inputR": ["r","l","r","sp"],
+     "inputL": ["l","r","l","sp"],
+     "stats": {
+       "dmg": 0,
+       "meter": 0,
+       "property": "high",
+       "priority": 0
+     }
    }
-  },
+  ],
   "normals": {
     "lp": {
       "dmg": 0,
-      "meter": 0
+      "meter": 0,
+      "property": "mid"
     },
     "sp": {
       "dmg": 0,
-      "meter": 0
+      "meter": 0,
+      "property": "mid"
     },
     "lk": {
       "dmg": 0,
-      "meter": 0
+      "meter": 0,
+      "property": "mid"
     },
     "sk": {
       "dmg": 0,
-      "meter": 0
+      "meter": 0,
+      "property": "mid"
     }
+  },
+  "crouchNormals": {
+        "lp": {
+          "dmg": 0,
+          "meter": 0,
+          "property": "mid"
+        },
+        "sp": {
+          "dmg": 0,
+          "meter": 0,
+          "property": "mid"
+        },
+        "lk": {
+          "dmg": 0,
+          "meter": 0,
+          "property": "mid"
+        },
+        "sk": {
+          "dmg": 0,
+          "meter": 0,
+          "property": "mid"
+        }
   }
 }
